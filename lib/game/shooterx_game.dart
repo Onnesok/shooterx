@@ -371,8 +371,12 @@ class ShooterXGame extends FlameGame {
     if (enemySpawnTimer >= currentEnemySpawnInterval) {
       enemySpawnTimer = 0;
       final x = (size.x - 40) * (_random.nextDouble());
-      final type = EnemyType.values[_random.nextInt(EnemyType.values.length)];
-      add(Enemy(position: Vector2(x, 0), type: type, speed: currentEnemySpeed));
+      final isAsteroid = _random.nextBool();
+      add(Enemy(
+        position: Vector2(x, 0),
+        type: isAsteroid ? EnemyType.asteroid : EnemyType.spaceship,
+        speed: currentEnemySpeed,
+      ));
     }
     // Collision detection
     final bullets = children.whereType<Bullet>().toList();
