@@ -46,7 +46,39 @@ class GlassyArcComponent extends PositionComponent {
 }
 
 class ShooterXGame extends FlameGame {
+  static const double parallaxFactor = 0.2; // Background moves at 20% of player movement (slower)
+  static const double bgScale = 1.5; // Background is scaled up 1.5x
+
+  // List of all background image paths
+  final List<String> backgroundPaths = [
+    // Blue Nebula
+    'Blue_Nebula/Blue_Nebula_01.png',
+    'Blue_Nebula/Blue_Nebula_02.png',
+    'Blue_Nebula/Blue_Nebula_03.png',
+    'Blue_Nebula/Blue_Nebula_04.png',
+    // Green Nebula
+    'Green_Nebula/Green_Nebula_01.png',
+    'Green_Nebula/Green_Nebula_02.png',
+    'Green_Nebula/Green_Nebula_03.png',
+    'Green_Nebula/Green_Nebula_04.png',
+    // Purple Nebula
+    'Purple_Nebula/Purple_Nebula_01.png',
+    'Purple_Nebula/Purple_Nebula_02.png',
+    'Purple_Nebula/Purple_Nebula_03.png',
+    'Purple_Nebula/Purple_Nebula_04.png',
+    'Purple_Nebula/Purple_Nebula_05.png',
+    // Starfields
+    'Starfields/Starfield_01.png',
+    'Starfields/Starfield_02.png',
+    'Starfields/Starfield_03.png',
+    'Starfields/Starfield_04.png',
+    'Starfields/Starfield_05.png',
+  ];
+  int currentBackgroundIndex = 0;
+  double backgroundChangeTimer = 0;
+  final double backgroundChangeInterval = 60.0; // seconds (1 minute)
   late Player player;
+  SpriteComponent? gameBackground;
   double enemySpawnTimer = 0;
   double currentEnemySpawnInterval = 1.2; // seconds, will decrease
   double currentEnemySpeed = 120; // will increase
@@ -56,14 +88,30 @@ class ShooterXGame extends FlameGame {
   late JoystickComponent joystick;
   late HudButtonComponent shootButton;
   late HudButtonComponent pauseButton;
+  
+  Vector2? _prevPlayerPosition; // For tracking player movement delta
 
   @override
   Future<void> onLoad() async {
+    // Load a random background image and add as the first component
+    currentBackgroundIndex = _random.nextInt(backgroundPaths.length);
+    final bgSprite = await loadSprite(backgroundPaths[currentBackgroundIndex]);
+    print('Background sprite loaded: $bgSprite');
+    final bgComponent = SpriteComponent(
+      sprite: bgSprite,
+      size: bgSprite.srcSize * bgScale, // Scale up the background
+      anchor: Anchor.topLeft,
+      position: Vector2.zero(),
+      priority: -1, // Ensure it renders behind everything
+    );
+    add(bgComponent);
+    gameBackground = bgComponent;
     player = Player();
     player.shootCallback = shoot;
     add(player);
     await Future.delayed(Duration.zero); // Wait for game size
     player.position = Vector2((size.x - player.size.x) / 2, size.y - player.size.y - 20);
+    _prevPlayerPosition = player.position.clone(); // Initialize previous position
     joystick = JoystickComponent(
       knob: CircleComponent(
         radius: 36,
@@ -302,6 +350,17 @@ class ShooterXGame extends FlameGame {
     } else {
       player.moveDirection = Vector2.zero();
     }
+    // --- Parallax enemy movement (match new background movement) ---
+    if (_prevPlayerPosition != null) {
+      final playerDelta = player.position - _prevPlayerPosition!;
+      if (playerDelta.length != 0) {
+        final parallaxDelta = playerDelta * parallaxFactor;
+        for (final enemy in children.whereType<Enemy>()) {
+          enemy.position -= parallaxDelta;
+        }
+      }
+      _prevPlayerPosition = player.position.clone();
+    }
     // Dynamic difficulty scaling
     currentEnemySpeed = 120 + score.value * 4;
     if (currentEnemySpeed > 350) currentEnemySpeed = 350;
@@ -345,6 +404,25 @@ class ShooterXGame extends FlameGame {
         break;
       }
     }
+    // Move background with player (parallax)
+    if (gameBackground != null) {
+      // Calculate offset so player stays centered, but move background slower (parallax)
+      final bgOffset = Vector2(
+        -(player.position.x + player.size.x / 2 - size.x / 2) * parallaxFactor,
+        -(player.position.y + player.size.y / 2 - size.y / 2) * parallaxFactor,
+      );
+      // Clamp so background doesn't show outside edges
+      bgOffset.x = bgOffset.x.clamp(size.x - gameBackground!.size.x, 0);
+      bgOffset.y = bgOffset.y.clamp(size.y - gameBackground!.size.y, 0);
+      gameBackground!.position = bgOffset;
+    }
+    // Cycle background over time
+    backgroundChangeTimer += dt;
+    if (backgroundChangeTimer >= backgroundChangeInterval) {
+      backgroundChangeTimer = 0;
+      currentBackgroundIndex = (currentBackgroundIndex + 1) % backgroundPaths.length;
+      _changeBackground(backgroundPaths[currentBackgroundIndex]);
+    }
   }
 
   void shoot(Vector2 position) {
@@ -367,17 +445,44 @@ class ShooterXGame extends FlameGame {
     state = GameState.playing;
     overlays.add('Score');
     overlays.remove('GameOver');
+    // Pick a new random background and update it
+    currentBackgroundIndex = _random.nextInt(backgroundPaths.length);
+    _changeBackground(backgroundPaths[currentBackgroundIndex]);
+    backgroundChangeTimer = 0;
   }
 
   void startGame() {
+    // Reset everything as in restart()
+    children.whereType<Bullet>().forEach((b) => b.removeFromParent());
+    children.whereType<Enemy>().forEach((e) => e.removeFromParent());
+    player.position = Vector2((size.x - player.size.x) / 2, size.y - player.size.y - 20);
     score.value = 0;
     state = GameState.playing;
     overlays.add('Score');
     overlays.remove('Welcome');
     overlays.remove('GameOver');
+    // Pick a new random background and update it
+    currentBackgroundIndex = _random.nextInt(backgroundPaths.length);
+    _changeBackground(backgroundPaths[currentBackgroundIndex]);
+    backgroundChangeTimer = 0;
     resumeEngine();
   }
 
   @override
   Color backgroundColor() => const Color(0xFF000010);
+
+  @override
+  void onGameResize(Vector2 newSize) {
+    super.onGameResize(newSize);
+    // Do NOT resize the background to the new size!
+    // If you want to support different screen sizes, use a background image that is large enough.
+  }
+
+  Future<void> _changeBackground(String path) async {
+    if (gameBackground != null) {
+      final newSprite = await loadSprite(path);
+      gameBackground!.sprite = newSprite;
+      gameBackground!.size = newSprite.srcSize * bgScale;
+    }
+  }
 } 

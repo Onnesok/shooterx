@@ -76,6 +76,26 @@ class PausedOverlay extends StatelessWidget {
                       icon: const Icon(Icons.play_arrow, size: 24),
                       label: const Text('Resume'),
                     ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[800],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 6,
+                        textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        shadowColor: Colors.black54,
+                      ),
+                      onPressed: () {
+                        game.overlays.remove('Paused');
+                        game.overlays.add('Welcome');
+                      },
+                      icon: const Icon(Icons.home, size: 24),
+                      label: const Text('Main Menu'),
+                    ),
                   ],
                 ),
               ),

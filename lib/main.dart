@@ -27,7 +27,17 @@ void main() {
           game: _game,
           overlayBuilderMap: {
             'Score': (context, game) => ScoreOverlay(game: game as ShooterXGame),
-            'GameOver': (context, game) => GameOverOverlay(game: game as ShooterXGame),
+            'GameOver': (context, game) => AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (child, animation) => ScaleTransition(
+                scale: animation,
+                child: FadeTransition(
+                  opacity: animation,
+                  child: child,
+                ),
+              ),
+              child: GameOverOverlay(game: game as ShooterXGame),
+            ),
             'Paused': (context, game) => PausedOverlay(game: game as ShooterXGame),
             'Welcome': (context, game) => WelcomeOverlay(game: game as ShooterXGame),
           },

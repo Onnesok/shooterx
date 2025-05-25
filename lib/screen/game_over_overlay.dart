@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../game/shooterx_game.dart';
-import 'dart:ui' as ui;
 
 class GameOverOverlay extends StatelessWidget {
   final ShooterXGame game;
@@ -10,126 +9,136 @@ class GameOverOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        // Full-screen background image
         Positioned.fill(
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF232526), Color(0xFF414345)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: null,
-            ),
+          child: Image.asset(
+            'assets/images/backgrounds/background1.png',
+            fit: BoxFit.cover,
           ),
         ),
-        Center(
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.8, end: 1.0),
-            duration: const Duration(milliseconds: 700),
-            curve: Curves.elasticOut,
-            builder: (context, scale, child) => Transform.scale(
-              scale: scale,
-              child: child,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(36),
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(36),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.redAccent.withOpacity(0.18),
-                        blurRadius: 32,
-                        spreadRadius: 2,
+        // Simple dark overlay
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.65),
+          ),
+        ),
+        // Animated entrance for content
+        SafeArea(
+          child: Center(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOut,
+              builder: (context, opacity, child) => AnimatedOpacity(
+                opacity: opacity,
+                duration: const Duration(milliseconds: 300),
+                child: child,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Animated title
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.8, end: 1.0),
+                      duration: const Duration(milliseconds: 900),
+                      curve: Curves.elasticOut,
+                      builder: (context, scale, child) => Transform.scale(
+                        scale: scale,
+                        child: child,
                       ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 44),
-                  child: SingleChildScrollView(
-                    child: Column(
+                      child: Text(
+                        'Game Over',
+                        style: TextStyle(
+                          color: Colors.redAccent.shade100,
+                          fontSize: 54,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          shadows: const [
+                            Shadow(blurRadius: 12, color: Colors.redAccent, offset: Offset(0, 2)),
+                            Shadow(blurRadius: 4, color: Colors.black54, offset: Offset(0, 2)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    // Score
+                    Text(
+                      'Score: ${game.score.value}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        shadows: [Shadow(blurRadius: 4, color: Colors.black45)],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    // Animated sad icon
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.7, end: 1.0),
+                      duration: const Duration(milliseconds: 700),
+                      curve: Curves.elasticOut,
+                      builder: (context, scale, child) => Transform.scale(
+                        scale: scale,
+                        child: child,
+                      ),
+                      child: const Icon(
+                        Icons.sentiment_very_dissatisfied,
+                        color: Colors.redAccent,
+                        size: 48,
+                        shadows: [
+                          Shadow(blurRadius: 8, color: Colors.redAccent, offset: Offset(0, 2)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+                    // Buttons
+                    Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        ShaderMask(
-                          shaderCallback: (rect) => const RadialGradient(
-                            colors: [Color(0xFFFF1744), Color(0xFFB71C1C)],
-                            center: Alignment.topCenter,
-                            radius: 1.2,
-                          ).createShader(rect),
-                          child: const Text(
-                            'Game Over',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 38,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2,
-                              shadows: [Shadow(blurRadius: 8, color: Colors.black38)],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TweenAnimationBuilder<double>(
-                          tween: Tween<double>(begin: 0, end: game.score.value.toDouble()),
-                          duration: const Duration(milliseconds: 900),
-                          builder: (context, value, child) => Text(
-                            'Score: ${value.toInt()}',
-                            style: const TextStyle(
-                              color: Colors.black87,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        TweenAnimationBuilder<double>(
-                          tween: Tween<double>(begin: 0.7, end: 1.0),
-                          duration: const Duration(milliseconds: 700),
-                          curve: Curves.elasticOut,
-                          builder: (context, scale, child) => Transform.scale(
-                            scale: scale,
-                            child: child,
-                          ),
-                          child: Icon(
-                            Icons.sentiment_very_dissatisfied,
-                            color: Colors.redAccent.withOpacity(0.8),
-                            size: 38,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 10,
-                                color: Colors.redAccent.withOpacity(0.4),
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(18),
                             ),
                             elevation: 8,
-                            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             shadowColor: Colors.redAccent,
                           ),
                           onPressed: () {
                             game.restart();
                           },
-                          icon: const Icon(Icons.refresh, size: 22),
+                          icon: const Icon(Icons.refresh, size: 24),
                           label: const Text('Restart'),
+                        ),
+                        const SizedBox(width: 24),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[900],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            elevation: 8,
+                            textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            shadowColor: Colors.black54,
+                          ),
+                          onPressed: () {
+                            game.overlays.remove('GameOver');
+                            game.overlays.add('Welcome');
+                          },
+                          icon: const Icon(Icons.home, size: 24),
+                          label: const Text('Main Menu'),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -138,4 +147,4 @@ class GameOverOverlay extends StatelessWidget {
       ],
     );
   }
-} 
+}
