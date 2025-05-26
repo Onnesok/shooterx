@@ -1,16 +1,75 @@
-# shooterx
+# ShooterX
 
-A new Flutter project.
+**ShooterX** is an endless arcade shooting game built with Flutter and Flame. Players must dodge and destroy asteroids and enemy spaceships to survive and save their kind. The game features dynamic backgrounds, smooth controls, and increasing difficulty for endless fun!
+
+## Features
+
+- **Endless Gameplay:** Survive as long as you can against waves of asteroids and enemy ships.
+- **Dynamic Difficulty:** The game gets harder as your score increases—enemies spawn faster and move quicker.
+- **Beautiful Parallax Backgrounds:** Multiple nebula and starfield backgrounds that cycle as you play.
+- **Intuitive Controls:** On-screen joystick for movement and a dedicated shoot button.
+- **Responsive UI:** Animated overlays for welcome, pause, score, and game over screens.
+- **Powerful Visuals:** Glassy effects, glowing buttons, and smooth animations.
+- **Score Tracking:** See your score at game over and challenge yourself to beat your high score.
+
+## Screenshots
+
+*(screenshots will be added here)*
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### Prerequisites
 
-A few resources to get you started if this is your first Flutter project:
+- [Flutter](https://flutter.dev/docs/get-started/install) (latest stable)
+- [Dart](https://dart.dev/get-dart)
+- A device or emulator (Android, iOS, or web)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Installation
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Onnesok/shooterx.git
+   cd shooterx
+   ```
+
+2. **Get dependencies:**
+   ```bash
+   flutter pub get
+   ```
+
+3. **Run the game:**
+   - For Android/iOS:
+     ```bash
+     flutter run
+     ```
+   - For Web:
+     ```bash
+     flutter run -d chrome
+     ```
+
+## How to Play
+
+- **Move:** Use the on-screen joystick (bottom left) to move your ship in all directions.
+- **Shoot:** Tap the glowing shoot button (bottom right) to fire bullets.
+- **Objective:** Destroy asteroids and enemy spaceships to earn points. Avoid collisions—one hit and it's game over!
+- **Pause:** Tap the pause button (top right) to pause the game.
+
+## Game Flow
+
+- Start from the animated welcome screen.
+- Survive as long as possible, shooting enemies and dodging obstacles.
+- When you collide with an enemy or get hit by an enemy bullet, the game ends and your score is displayed.
+- Restart or return to the main menu from the game over screen.
+
+## Credits
+
+- Developed by [Onnesok](https://github.com/Onnesok)
+- Built with [Flutter](https://flutter.dev/) and [Flame](https://flame-engine.org/)
+
+## License
+
+*MIT*
+
+---
+
+For more details, visit the [ShooterX GitHub repository](https://github.com/Onnesok/shooterx).
