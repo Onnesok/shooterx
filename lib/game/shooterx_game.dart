@@ -7,8 +7,15 @@ import 'package:flame/input.dart';
 import '../components/player.dart';
 import '../components/bullet.dart';
 import '../components/enemy.dart';
+import 'package:flutter/painting.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../screen/store_overlay.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'game_bloc.dart';
 
 enum GameState { playing, gameOver }
+enum FireStyle { normal, fire, plasma, laser, explosive }
+enum StoreBulletType { classic, split, spread, group, explosive }
 
 // Custom arc highlight component for glassy effect
 class GlassyArcComponent extends PositionComponent {
@@ -90,9 +97,31 @@ class ShooterXGame extends FlameGame {
   late HudButtonComponent pauseButton;
   
   Vector2? _prevPlayerPosition; // For tracking player movement delta
+  FireStyle fireStyle = FireStyle.normal;
+  final GameBloc gameBloc;
+  ShooterXGame({required this.gameBloc});
+
+  // Skins and bullet types for the store
+  final List<Map<String, dynamic>> skins = const [
+    {'id': 0, 'name': 'Classic', 'price': 0, 'color': Colors.cyan},
+    {'id': 1, 'name': 'Blue Nova', 'price': 2000, 'color': Colors.blueAccent},
+    {'id': 2, 'name': 'Emerald', 'price': 2500, 'color': Colors.greenAccent},
+    {'id': 3, 'name': 'Violet', 'price': 3000, 'color': Colors.purpleAccent},
+    {'id': 4, 'name': 'Gold', 'price': 3500, 'color': Colors.amber},
+  ];
+
+  final List<Map<String, dynamic>> bulletTypes = const [
+    {'id': 0, 'name': 'Classic', 'price': 0, 'icon': Icons.circle},
+    {'id': 1, 'name': 'Split', 'price': 3000, 'icon': Icons.call_split},
+    {'id': 2, 'name': 'Spread', 'price': 3500, 'icon': Icons.double_arrow},
+    {'id': 3, 'name': 'Group', 'price': 4000, 'icon': Icons.burst_mode},
+  ];
 
   @override
   Future<void> onLoad() async {
+    // Ensure BLoC loads state from SharedPreferences first
+    gameBloc.add(LoadGameState());
+    await Future.delayed(Duration(milliseconds: 50)); // Give BLoC a moment to update state
     // Load a random background image and add as the first component
     currentBackgroundIndex = _random.nextInt(backgroundPaths.length);
     final bgSprite = await loadSprite(backgroundPaths[currentBackgroundIndex]);
@@ -286,7 +315,12 @@ class ShooterXGame extends FlameGame {
         ],
       ),
       margin: const EdgeInsets.only(right: 56, bottom: 56),
-      onPressed: () => player.shootCallback?.call(player.position + Vector2(player.size.x / 2 - 4, -10)),
+      onPressed: () => player.shootCallback?.call(
+        Vector2(
+          player.position.x + player.size.x / 2,
+          player.position.y,
+        ),
+      ),
     );
     add(shootButton);
 
@@ -332,12 +366,22 @@ class ShooterXGame extends FlameGame {
     );
     add(pauseButton);
 
-    score.value = 0;
     state = GameState.playing;
     overlays.add('Welcome');
     overlays.remove('Score');
     overlays.remove('GameOver');
     pauseEngine();
+    await _loadUnlockedSkins();
+    await _loadUnlockedBulletTypes();
+    // Listen to GameBloc state changes for skin and bullet type
+    gameBloc.stream.listen((state) {
+      player.skinId = int.tryParse(state.selectedSkin) ?? 0;
+      // If you have a bullet type property, update it here as well
+      // selectedBulletType = int.tryParse(state.selectedBullet) ?? 0;
+    });
+    // Set initial skin and bullet type from bloc state
+    player.skinId = int.tryParse(gameBloc.state.selectedSkin) ?? 0;
+    // selectedBulletType = int.tryParse(gameBloc.state.selectedBullet) ?? 0;
   }
 
   @override
@@ -386,7 +430,7 @@ class ShooterXGame extends FlameGame {
         if (bullet.toRect().overlaps(enemy.toRect())) {
           bullet.removeFromParent();
           enemy.removeFromParent();
-          score.value += 1;
+          gameBloc.add(AddPoints(1));
         }
       }
     }
@@ -431,21 +475,46 @@ class ShooterXGame extends FlameGame {
 
   void shoot(Vector2 position) {
     if (state == GameState.playing) {
-      add(Bullet(position: position));
+      final bulletType = int.tryParse(gameBloc.state.selectedBullet) ?? 0;
+      switch (bulletType) {
+        case 0: // Classic
+          add(Bullet(position: position, type: BulletType.normal));
+          break;
+        case 1: // Split
+          add(SplitBullet(position: position));
+          break;
+        case 2: // Spread
+          for (final angle in [-0.25, 0.0, 0.25]) {
+            add(BulletWithAngle(position: position, angle: angle));
+          }
+          break;
+        case 3: // Group
+          for (final offset in [-12.0, 0.0, 12.0]) {
+            add(Bullet(position: position + Vector2(offset, 0), type: BulletType.normal));
+          }
+          break;
+      }
     }
   }
 
-  void gameOver() {
+  void gameOver() async {
     state = GameState.gameOver;
     overlays.remove('Score');
     overlays.add('GameOver');
+    // Update high score if needed
+    final prefs = await SharedPreferences.getInstance();
+    final currentScore = gameBloc.state.score;
+    final highScore = prefs.getInt('highScore') ?? 0;
+    if (currentScore > highScore) {
+      await prefs.setInt('highScore', currentScore);
+    }
   }
 
   void restart() {
     children.whereType<Bullet>().forEach((b) => b.removeFromParent());
     children.whereType<Enemy>().forEach((e) => e.removeFromParent());
     player.position = Vector2((size.x - player.size.x) / 2, size.y - player.size.y - 20);
-    score.value = 0;
+    gameBloc.add(ResetScore());
     state = GameState.playing;
     overlays.add('Score');
     overlays.remove('GameOver');
@@ -453,6 +522,7 @@ class ShooterXGame extends FlameGame {
     currentBackgroundIndex = _random.nextInt(backgroundPaths.length);
     _changeBackground(backgroundPaths[currentBackgroundIndex]);
     backgroundChangeTimer = 0;
+    fireStyle = FireStyle.normal;
   }
 
   void startGame() {
@@ -460,7 +530,7 @@ class ShooterXGame extends FlameGame {
     children.whereType<Bullet>().forEach((b) => b.removeFromParent());
     children.whereType<Enemy>().forEach((e) => e.removeFromParent());
     player.position = Vector2((size.x - player.size.x) / 2, size.y - player.size.y - 20);
-    score.value = 0;
+    gameBloc.add(ResetScore());
     state = GameState.playing;
     overlays.add('Score');
     overlays.remove('Welcome');
@@ -470,6 +540,12 @@ class ShooterXGame extends FlameGame {
     _changeBackground(backgroundPaths[currentBackgroundIndex]);
     backgroundChangeTimer = 0;
     resumeEngine();
+    fireStyle = FireStyle.normal;
+  }
+
+  void openStore() {
+    overlays.add('Store');
+    pauseEngine();
   }
 
   @override
@@ -488,5 +564,71 @@ class ShooterXGame extends FlameGame {
       gameBackground!.sprite = newSprite;
       gameBackground!.size = newSprite.srcSize * bgScale;
     }
+  }
+
+  Future<void> _loadUnlockedSkins() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('unlockedSkins');
+    if (list != null) {
+      for (final id in list) {
+        gameBloc.add(UnlockSkin(id));
+      }
+    } else {
+      gameBloc.add(UnlockSkin('0'));
+    }
+  }
+
+  bool isSkinUnlocked(int id) => gameBloc.state.unlockedSkins.contains(id.toString());
+
+  void unlockSkin(int id) {
+    gameBloc.add(UnlockSkin(id.toString()));
+  }
+
+  void selectSkin(int id, {bool unlockIfNeeded = false}) {
+    if (!isSkinUnlocked(id) && unlockIfNeeded) {
+      unlockSkin(id);
+    }
+    gameBloc.add(SelectSkin(id.toString()));
+  }
+
+  Future<void> _loadUnlockedBulletTypes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('unlockedBulletTypes');
+    if (list != null) {
+      for (final id in list) {
+        gameBloc.add(UnlockBullet(id));
+      }
+    } else {
+      gameBloc.add(UnlockBullet('0'));
+    }
+  }
+
+  Future<void> _saveUnlockedBulletTypes() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('unlockedBulletTypes', gameBloc.state.unlockedBullets.map((e) => e.toString()).toList());
+  }
+
+  bool isBulletTypeUnlocked(int id) => gameBloc.state.unlockedBullets.contains(id.toString());
+
+  void unlockBulletType(int id) {
+    gameBloc.add(UnlockBullet(id.toString()));
+  }
+
+  Future<int?> _loadSelectedBulletType() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('selectedBulletType');
+  }
+
+  Future<void> _saveSelectedBulletType(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('selectedBulletType', id);
+  }
+
+  void selectBulletType(int id, {bool unlockIfNeeded = false}) {
+    if (!isBulletTypeUnlocked(id) && unlockIfNeeded) {
+      unlockBulletType(id);
+    }
+    gameBloc.add(SelectBullet(id.toString()));
+    // selectedBulletType will be updated by the bloc listener if needed
   }
 } 
