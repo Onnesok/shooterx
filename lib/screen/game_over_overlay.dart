@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../game/shooterx_game.dart';
+import '../game/game_bloc.dart' as bloc;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GameOverOverlay extends StatelessWidget {
   final ShooterXGame game;
@@ -64,15 +67,43 @@ class GameOverOverlay extends StatelessWidget {
                     ),
                     const SizedBox(height: 18),
                     // Score
-                    Text(
-                      'Score: ${game.score.value}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        shadows: [Shadow(blurRadius: 4, color: Colors.black45)],
-                      ),
+                    BlocBuilder<bloc.GameBloc, bloc.GameState>(
+                      builder: (context, state) {
+                        return Column(
+                          children: [
+                            Text(
+                              'Score: ${state.score}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                                shadows: [Shadow(blurRadius: 4, color: Colors.black45)],
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            FutureBuilder<int>(
+                              future: _getHighScore(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return const SizedBox.shrink();
+                                }
+                                final highScore = snapshot.data ?? 0;
+                                return Text(
+                                  'High Score: $highScore',
+                                  style: const TextStyle(
+                                    color: Colors.amber,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.1,
+                                    shadows: [Shadow(blurRadius: 2, color: Colors.black38)],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 18),
                     // Animated sad icon
@@ -146,5 +177,10 @@ class GameOverOverlay extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<int> _getHighScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('highScore') ?? 0;
   }
 }

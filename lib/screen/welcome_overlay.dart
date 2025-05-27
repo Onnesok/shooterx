@@ -10,7 +10,6 @@ class WelcomeOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Full-screen background image
         Positioned.fill(
           child: Image.asset(
             'assets/images/backgrounds/background1.png',
@@ -82,23 +81,47 @@ class WelcomeOverlay extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          elevation: 18,
+                          textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                          shadowColor: Colors.blueAccent,
+                        ),
+                        onPressed: () {
+                          game.startGame();
+                        },
+                        icon: const Icon(Icons.play_arrow, size: 24),
+                        label: const Text('Start Game'),
                       ),
-                      elevation: 18,
-                      textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                      shadowColor: Colors.blueAccent,
-                    ),
-                    onPressed: () {
-                      game.startGame();
-                    },
-                    icon: const Icon(Icons.play_arrow, size: 24),
-                    label: const Text('Start Game'),
+                      const SizedBox(width: 24),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          elevation: 12,
+                          textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                          shadowColor: Colors.deepPurple,
+                        ),
+                        onPressed: () {
+                          game.openStore();
+                        },
+                        icon: const Icon(Icons.store, size: 24),
+                        label: const Text('Store'),
+                      ),
+                    ],
                   ),
                 ],
               ),
