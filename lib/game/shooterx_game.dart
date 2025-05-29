@@ -429,7 +429,7 @@ class ShooterXGame extends FlameGame {
       for (final enemy in enemies) {
         if (bullet.toRect().overlaps(enemy.toRect())) {
           bullet.removeFromParent();
-          enemy.removeFromParent();
+          enemy.shatterAndDestroy();
           gameBloc.add(AddPoints(1));
         }
       }

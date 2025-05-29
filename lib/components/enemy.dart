@@ -3,6 +3,7 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'bullet.dart';
+import 'enemy_shatter_particle.dart';
 
 enum EnemyType { asteroid, spaceship }
 
@@ -13,6 +14,12 @@ class Enemy extends PositionComponent {
   double nextShoot = 0;
   final Random _random = Random();
   late List<Offset> _asteroidPoints;
+  bool _isShattering = false;
+  double _shatterTimer = 0.0;
+  static const double shatterDuration = 0.5; // seconds
+  double _shatterScale = 1.0;
+  double _shatterRotation = 0.0;
+  double _shatterOpacity = 1.0;
 
   Enemy({required Vector2 position, this.type = EnemyType.asteroid, this.speed = 120})
       : super(
@@ -40,8 +47,91 @@ class Enemy extends PositionComponent {
     });
   }
 
+  void shatterAndDestroy() {
+    if (_isShattering) return;
+    _isShattering = true;
+    // Spawn particles
+    final parentGame = findGame();
+    if (parentGame != null) {
+      if (type == EnemyType.asteroid) {
+        // Use asteroid polygon fragments
+        final paint = Paint()
+          ..shader = const LinearGradient(
+            colors: [Color(0xFFBCAAA4), Color(0xFF6D4C41), Color(0xFF3E2723)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
+        // Break asteroid into polygon fragments
+        final List<Path> shapes = [];
+        for (int i = 0; i < _asteroidPoints.length; i++) {
+          final p0 = _asteroidPoints[i];
+          final p1 = _asteroidPoints[(i + 1) % _asteroidPoints.length];
+          final center = Offset(size.x / 2, size.y / 2);
+          final frag = Path()
+            ..moveTo(center.dx, center.dy)
+            ..lineTo(p0.dx, p0.dy)
+            ..lineTo(p1.dx, p1.dy)
+            ..close();
+          shapes.add(frag);
+        }
+        final particles = EnemyShatterParticle.burst(
+          position: position,
+          paint: paint,
+          count: shapes.length,
+          size: 16,
+          shapes: shapes,
+        );
+        for (final p in particles) {
+          parentGame.add(p);
+        }
+      } else {
+        // Spaceship: use rectangles/triangles as fragments
+        final paint = Paint()
+          ..shader = const LinearGradient(
+            colors: [Color(0xFFFF5252), Color(0xFFB71C1C), Color(0xFF232526)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
+        final List<Path> shapes = [
+          // Triangle fragments
+          (() {
+            final path = Path();
+            path.moveTo(size.x / 2, size.y);
+            path.lineTo(size.x * 0.92, size.y * 0.18);
+            path.lineTo(size.x * 0.08, size.y * 0.18);
+            path.close();
+            return path;
+          })(),
+          (() {
+            final path = Path();
+            path.moveTo(size.x / 2, size.y * 0.92);
+            path.lineTo(size.x * 0.78, size.y * 0.22);
+            path.lineTo(size.x * 0.22, size.y * 0.22);
+            path.close();
+            return path;
+          })(),
+        ];
+        final particles = EnemyShatterParticle.burst(
+          position: position,
+          paint: paint,
+          count: 8,
+          size: 12,
+          shapes: shapes,
+        );
+        for (final p in particles) {
+          parentGame.add(p);
+        }
+      }
+    }
+    removeFromParent();
+  }
+
   @override
   void render(Canvas canvas) {
+    if (_isShattering) {
+      // Don't render the enemy if shattering (particles will show)
+      return;
+    }
     if (type == EnemyType.asteroid) {
       _renderAsteroid(canvas);
     } else {
@@ -174,6 +264,10 @@ class Enemy extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (_isShattering) {
+      // Don't update if shattering (removed instantly)
+      return;
+    }
     position.y += speed * dt;
     if (position.y > findGame()!.size.y) {
       removeFromParent();
