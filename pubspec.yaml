@@ -77,6 +77,12 @@ flutter:
     - assets/images/Purple_Nebula/
     - assets/images/Starfields/
     - assets/images/backgrounds/
+    - assets/images/01/
+    - assets/images/02/
+    - assets/images/03/
+    - assets/images/04/
+    - assets/images/05/
+    - assets/images/06/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

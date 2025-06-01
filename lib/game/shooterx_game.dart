@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../screen/store_overlay.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'game_bloc.dart';
+import 'background_component.dart';
 
 enum GameState { playing, gameOver }
 enum FireStyle { normal, fire, plasma, laser, explosive }
@@ -85,7 +86,7 @@ class ShooterXGame extends FlameGame {
   double backgroundChangeTimer = 0;
   final double backgroundChangeInterval = 60.0; // seconds (1 minute)
   late Player player;
-  SpriteComponent? gameBackground;
+  late BackgroundComponent backgroundComponent;
   double enemySpawnTimer = 0;
   double currentEnemySpawnInterval = 1.2; // seconds, will decrease
   double currentEnemySpeed = 120; // will increase
@@ -101,7 +102,7 @@ class ShooterXGame extends FlameGame {
   final GameBloc gameBloc;
   ShooterXGame({required this.gameBloc});
 
-  // Skins and bullet types for the store
+  // Skins and bullet types for the store (public for store pages)
   final List<Map<String, dynamic>> skins = const [
     {'id': 0, 'name': 'Classic', 'price': 0, 'color': Colors.cyan},
     {'id': 1, 'name': 'Blue Nova', 'price': 2000, 'color': Colors.blueAccent},
@@ -124,17 +125,12 @@ class ShooterXGame extends FlameGame {
     await Future.delayed(Duration(milliseconds: 50)); // Give BLoC a moment to update state
     // Load a random background image and add as the first component
     currentBackgroundIndex = _random.nextInt(backgroundPaths.length);
-    final bgSprite = await loadSprite(backgroundPaths[currentBackgroundIndex]);
-    print('Background sprite loaded: $bgSprite');
-    final bgComponent = SpriteComponent(
-      sprite: bgSprite,
-      size: bgSprite.srcSize * bgScale, // Scale up the background
-      anchor: Anchor.topLeft,
-      position: Vector2.zero(),
-      priority: -1, // Ensure it renders behind everything
+    backgroundComponent = BackgroundComponent(
+      imagePath: backgroundPaths[currentBackgroundIndex],
+      bgScale: bgScale,
+      priority: -1,
     );
-    add(bgComponent);
-    gameBackground = bgComponent;
+    add(backgroundComponent);
     player = Player();
     player.shootCallback = shoot;
     add(player);
@@ -405,11 +401,11 @@ class ShooterXGame extends FlameGame {
       }
       _prevPlayerPosition = player.position.clone();
     }
-    // Dynamic difficulty scaling
-    currentEnemySpeed = 120 + score.value * 4;
-    if (currentEnemySpeed > 350) currentEnemySpeed = 350;
-    currentEnemySpawnInterval = 1.2 - (score.value * 0.015);
-    if (currentEnemySpawnInterval < 0.5) currentEnemySpawnInterval = 0.5;
+    // Dynamic difficulty scaling (score only)
+    currentEnemySpeed = 120 + score.value * 7;
+    if (currentEnemySpeed > 420) currentEnemySpeed = 420;
+    currentEnemySpawnInterval = 1.2 - (score.value * 0.022);
+    if (currentEnemySpawnInterval < 0.22) currentEnemySpawnInterval = 0.22;
     // Enemy spawn logic
     enemySpawnTimer += dt;
     if (enemySpawnTimer >= currentEnemySpawnInterval) {
@@ -451,18 +447,6 @@ class ShooterXGame extends FlameGame {
         gameOver();
         break;
       }
-    }
-    // Move background with player (parallax)
-    if (gameBackground != null) {
-      // Calculate offset so player stays centered, but move background slower (parallax)
-      final bgOffset = Vector2(
-        -(player.position.x + player.size.x / 2 - size.x / 2) * parallaxFactor,
-        -(player.position.y + player.size.y / 2 - size.y / 2) * parallaxFactor,
-      );
-      // Clamp so background doesn't show outside edges
-      bgOffset.x = bgOffset.x.clamp(size.x - gameBackground!.size.x, 0);
-      bgOffset.y = bgOffset.y.clamp(size.y - gameBackground!.size.y, 0);
-      gameBackground!.position = bgOffset;
     }
     // Cycle background over time
     backgroundChangeTimer += dt;
@@ -559,10 +543,8 @@ class ShooterXGame extends FlameGame {
   }
 
   Future<void> _changeBackground(String path) async {
-    if (gameBackground != null) {
-      final newSprite = await loadSprite(path);
-      gameBackground!.sprite = newSprite;
-      gameBackground!.size = newSprite.srcSize * bgScale;
+    if (backgroundComponent != null) {
+      await backgroundComponent.loadSprite(path);
     }
   }
 

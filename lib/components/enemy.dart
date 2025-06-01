@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'bullet.dart';
 import 'enemy_shatter_particle.dart';
+import '../game/shooterx_game.dart';
 
 enum EnemyType { asteroid, spaceship }
 
@@ -267,6 +268,18 @@ class Enemy extends PositionComponent {
     if (_isShattering) {
       // Don't update if shattering (removed instantly)
       return;
+    }
+    // --- Attraction to player ---
+    final game = findGame() as ShooterXGame?;
+    if (game != null && game.player.parent != null) {
+      final playerPos = game.player.position + game.player.size / 2;
+      final enemyPos = position + size / 2;
+      final toPlayer = (playerPos - enemyPos);
+      if (toPlayer.length > 1) {
+        // Attraction strength (smaller = more subtle)
+        final steer = toPlayer.normalized() * (speed * 0.6) * dt;
+        position += Vector2(steer.x, 0); // Only adjust x (horizontal) for classic shooter feel
+      }
     }
     position.y += speed * dt;
     if (position.y > findGame()!.size.y) {
