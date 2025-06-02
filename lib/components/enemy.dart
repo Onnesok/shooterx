@@ -183,7 +183,7 @@ class Enemy extends PositionComponent {
           final path = Path()
             ..moveTo(c.dx, c.dy)
             ..lineTo(p0.dx, p0.dy)
-            ..lineTo(p1.dx, p1.dy)
+            ..lineTo(p1.dx, p1.dy) 
             ..close();
           return path;
         });
