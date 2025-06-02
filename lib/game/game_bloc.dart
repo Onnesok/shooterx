@@ -17,6 +17,20 @@ class AddPoints extends GameEvent {
   List<Object?> get props => [points];
 }
 
+class GainLife extends GameEvent {
+  final int amount;
+  const GainLife([this.amount = 1]);
+  @override
+  List<Object?> get props => [amount];
+}
+
+class LoseLife extends GameEvent {
+  final int amount;
+  const LoseLife([this.amount = 1]);
+  @override
+  List<Object?> get props => [amount];
+}
+
 class SpendPoints extends GameEvent {
   final int points;
   const SpendPoints(this.points);
@@ -59,6 +73,7 @@ class LoadGameState extends GameEvent {}
 class GameState extends Equatable {
   final int score;
   final int totalPoints;
+  final int life;
   final String selectedSkin;
   final Set<String> unlockedSkins;
   final String selectedBullet;
@@ -67,6 +82,7 @@ class GameState extends Equatable {
   const GameState({
     required this.score,
     required this.totalPoints,
+    required this.life,
     required this.selectedSkin,
     required this.unlockedSkins,
     required this.selectedBullet,
@@ -76,6 +92,7 @@ class GameState extends Equatable {
   GameState copyWith({
     int? score,
     int? totalPoints,
+    int? life,
     String? selectedSkin,
     Set<String>? unlockedSkins,
     String? selectedBullet,
@@ -84,6 +101,7 @@ class GameState extends Equatable {
     return GameState(
       score: score ?? this.score,
       totalPoints: totalPoints ?? this.totalPoints,
+      life: life ?? this.life,
       selectedSkin: selectedSkin ?? this.selectedSkin,
       unlockedSkins: unlockedSkins ?? this.unlockedSkins,
       selectedBullet: selectedBullet ?? this.selectedBullet,
@@ -92,7 +110,7 @@ class GameState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [score, totalPoints, selectedSkin, unlockedSkins, selectedBullet, unlockedBullets];
+  List<Object?> get props => [score, totalPoints, life, selectedSkin, unlockedSkins, selectedBullet, unlockedBullets];
 }
 
 // --- Bloc ---
@@ -101,6 +119,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       : super(const GameState(
           score: 0,
           totalPoints: 0,
+          life: 3,
           selectedSkin: '0',
           unlockedSkins: {'0'},
           selectedBullet: '0',
@@ -109,6 +128,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<LoadGameState>((event, emit) async {
       final prefs = await SharedPreferences.getInstance();
       final totalPoints = prefs.getInt('totalPoints') ?? 0;
+      final life = prefs.getInt('life') ?? 3;
 
       // Load selectedSkin and unlockedSkins
       dynamic selectedSkinRaw = prefs.get('selectedSkin');
@@ -138,6 +158,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
       emit(state.copyWith(
         totalPoints: totalPoints,
+        life: life,
         selectedSkin: selectedSkin,
         unlockedSkins: unlockedSkins,
         selectedBullet: selectedBullet,
@@ -152,6 +173,18 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       ));
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('totalPoints', newTotal);
+    });
+    on<GainLife>((event, emit) async {
+      final newLife = state.life + event.amount;
+      emit(state.copyWith(life: newLife));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('life', newLife);
+    });
+    on<LoseLife>((event, emit) async {
+      final newLife = state.life - event.amount;
+      emit(state.copyWith(life: newLife));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('life', newLife);
     });
     on<SpendPoints>((event, emit) async {
       final newTotal = state.totalPoints - event.points;
@@ -188,7 +221,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       await prefs.setStringList('unlockedBullets', newUnlocked.toList());
     });
     on<ResetScore>((event, emit) {
-      emit(state.copyWith(score: 0));
+      emit(state.copyWith(score: 0, life: 3));
     });
   }
 } 
