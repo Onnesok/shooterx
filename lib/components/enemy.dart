@@ -6,7 +6,7 @@ import 'bullet.dart';
 import 'enemy_shatter_particle.dart';
 import '../game/shooterx_game.dart';
 
-enum EnemyType { asteroid, spaceship }
+enum EnemyType { asteroid, spaceship, red2, red3 }
 
 class Enemy extends PositionComponent {
   final double speed;
@@ -25,8 +25,15 @@ class Enemy extends PositionComponent {
   Enemy({required Vector2 position, this.type = EnemyType.asteroid, this.speed = 120})
       : super(
           position: position,
-          size: Vector2(40, 40),
+          size: type == EnemyType.asteroid
+              ? Vector2(32, 32)
+              : (type == EnemyType.red2)
+                  ? Vector2(56, 56)
+                  : (type == EnemyType.red3)
+                      ? Vector2(64, 64)
+                      : Vector2(52, 52),
         ) {
+    debugMode = false;
     nextShoot = 1.5 + _random.nextDouble() * 2.0; // random between 1.5 and 3.5s
     if (type == EnemyType.asteroid) {
       _generateAsteroidShape();
@@ -85,38 +92,106 @@ class Enemy extends PositionComponent {
         for (final p in particles) {
           parentGame.add(p);
         }
+      } else if (type == EnemyType.red2 || type == EnemyType.red3) {
+        // Red ships: improved shatter effect, more particles, color variation
+        final baseColors = [Color(0xFFD32F2F), Color(0xFFB71C1C), Color(0xFF232526)];
+        final paint = Paint()
+          ..shader = LinearGradient(
+            colors: [
+              baseColors[0],
+              baseColors[1],
+              baseColors[2],
+              Color.lerp(baseColors[0], Colors.white, 0.18)!,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
+        final List<Path> shapes = [
+          // Small triangle
+          (() {
+            final path = Path();
+            path.moveTo(3, 0);
+            path.lineTo(6, 6);
+            path.lineTo(0, 6);
+            path.close();
+            return path;
+          })(),
+          // Small rectangle
+          (() {
+            final path = Path();
+            path.addRect(Rect.fromLTWH(0, 0, 6, 3));
+            return path;
+          })(),
+          // Skewed rectangle
+          (() {
+            final path = Path();
+            path.moveTo(0, 0);
+            path.lineTo(6, 1);
+            path.lineTo(5, 6);
+            path.lineTo(1, 5);
+            path.close();
+            return path;
+          })(),
+        ];
+        final center = position + size / 2;
+        final particles = [
+          ...EnemyShatterParticle.burst(
+            position: center,
+            paint: paint,
+            count: 18,
+            size: 7,
+            shapes: shapes,
+          ),
+          ...EnemyShatterParticle.burst(
+            position: center,
+            paint: Paint()
+              ..shader = LinearGradient(
+                colors: [
+                  Color.lerp(baseColors[0], Colors.yellow, 0.18)!,
+                  baseColors[1],
+                  baseColors[2],
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(Rect.fromLTWH(0, 0, size.x, size.y)),
+            count: 8,
+            size: 11,
+            shapes: shapes,
+          ),
+        ];
+        for (final p in particles) {
+          parentGame.add(p);
+        }
       } else {
-        // Spaceship: use rectangles/triangles as fragments
+        // Spaceship: use asteroid-like polygonal fragments for shatter
         final paint = Paint()
           ..shader = const LinearGradient(
             colors: [Color(0xFFFF5252), Color(0xFFB71C1C), Color(0xFF232526)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
-        final List<Path> shapes = [
-          // Triangle fragments
-          (() {
-            final path = Path();
-            path.moveTo(size.x / 2, size.y);
-            path.lineTo(size.x * 0.92, size.y * 0.18);
-            path.lineTo(size.x * 0.08, size.y * 0.18);
-            path.close();
-            return path;
-          })(),
-          (() {
-            final path = Path();
-            path.moveTo(size.x / 2, size.y * 0.92);
-            path.lineTo(size.x * 0.78, size.y * 0.22);
-            path.lineTo(size.x * 0.22, size.y * 0.22);
-            path.close();
-            return path;
-          })(),
-        ];
+        final int fragCount = 8;
+        final double r = size.x / 2;
+        final Offset c = Offset(size.x / 2, size.y / 2);
+        final List<Path> shapes = List.generate(fragCount, (i) {
+          final angle = (2 * pi / fragCount) * i;
+          final nextAngle = (2 * pi / fragCount) * (i + 1);
+          final radius1 = r * (0.7 + _random.nextDouble() * 0.3);
+          final radius2 = r * (0.7 + _random.nextDouble() * 0.3);
+          final p0 = Offset(c.dx + radius1 * cos(angle), c.dy + radius1 * sin(angle));
+          final p1 = Offset(c.dx + radius2 * cos(nextAngle), c.dy + radius2 * sin(nextAngle));
+          final path = Path()
+            ..moveTo(c.dx, c.dy)
+            ..lineTo(p0.dx, p0.dy)
+            ..lineTo(p1.dx, p1.dy)
+            ..close();
+          return path;
+        });
         final particles = EnemyShatterParticle.burst(
           position: position,
           paint: paint,
-          count: 8,
-          size: 12,
+          count: fragCount,
+          size: 10,
           shapes: shapes,
         );
         for (final p in particles) {
@@ -135,8 +210,12 @@ class Enemy extends PositionComponent {
     }
     if (type == EnemyType.asteroid) {
       _renderAsteroid(canvas);
-    } else {
+    } else if (type == EnemyType.spaceship) {
       _renderSpaceship(canvas);
+    } else if (type == EnemyType.red2) {
+      _renderRedSpaceship(canvas, '02/Spaceship_02_RED.png');
+    } else if (type == EnemyType.red3) {
+      _renderRedSpaceship(canvas, '03/Spaceship_03_RED.png');
     }
   }
 
@@ -262,6 +341,35 @@ class Enemy extends PositionComponent {
     canvas.drawCircle(Offset(size.x/2, size.y), 8, enginePaint);
   }
 
+  static final Map<String, Sprite?> _spriteCache = {};
+  Future<Sprite> _getSprite(String path) async {
+    if (_spriteCache[path] != null) return _spriteCache[path]!;
+    final game = findGame();
+    final sprite = await Sprite.load(path);
+    _spriteCache[path] = sprite;
+    return sprite;
+  }
+
+  void _renderRedSpaceship(Canvas canvas, String path) {
+    // This is a hack: Flame's render is not async, so we draw a placeholder and schedule a repaint
+    final sprite = _spriteCache[path];
+    if (sprite != null) {
+      canvas.save();
+      // Move to center, rotate 180deg, move back
+      canvas.translate(size.x / 2, size.y / 2);
+      canvas.rotate(pi); // 180 degrees
+      canvas.translate(-size.x / 2, -size.y / 2);
+      sprite.render(canvas, position: Vector2.zero(), size: size);
+      canvas.restore();
+    } else {
+      // Draw a placeholder
+      final paint = Paint()..color = const Color(0xFFB71C1C);
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), paint);
+      // Schedule sprite load and repaint
+      _getSprite(path);
+    }
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -287,7 +395,7 @@ class Enemy extends PositionComponent {
     }
     // Shooting logic
     shootTimer += dt;
-    if (shootTimer >= nextShoot && position.y > 0 && position.y < findGame()!.size.y - size.y) {
+    if ((type == EnemyType.spaceship || type == EnemyType.red2 || type == EnemyType.red3) && shootTimer >= nextShoot && position.y > 0 && position.y < findGame()!.size.y - size.y) {
       shootTimer = 0;
       nextShoot = 1.5 + _random.nextDouble() * 2.0;
       parent?.add(EnemyBullet(position: position + Vector2(size.x / 2 - 4, size.y)));

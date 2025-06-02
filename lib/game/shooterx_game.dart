@@ -13,6 +13,8 @@ import '../screen/store_overlay.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'game_bloc.dart';
 import 'background_component.dart';
+import '../components/heart.dart';
+import 'package:flutter/material.dart' as material;
 
 enum GameState { playing, gameOver }
 enum FireStyle { normal, fire, plasma, laser, explosive }
@@ -59,22 +61,22 @@ class ShooterXGame extends FlameGame {
 
   // List of all background image paths
   final List<String> backgroundPaths = [
-    // Blue Nebula
-    'Blue_Nebula/Blue_Nebula_01.png',
-    'Blue_Nebula/Blue_Nebula_02.png',
-    'Blue_Nebula/Blue_Nebula_03.png',
-    'Blue_Nebula/Blue_Nebula_04.png',
-    // Green Nebula
-    'Green_Nebula/Green_Nebula_01.png',
-    'Green_Nebula/Green_Nebula_02.png',
-    'Green_Nebula/Green_Nebula_03.png',
-    'Green_Nebula/Green_Nebula_04.png',
-    // Purple Nebula
-    'Purple_Nebula/Purple_Nebula_01.png',
-    'Purple_Nebula/Purple_Nebula_02.png',
-    'Purple_Nebula/Purple_Nebula_03.png',
-    'Purple_Nebula/Purple_Nebula_04.png',
-    'Purple_Nebula/Purple_Nebula_05.png',
+    // // Blue Nebula
+    // 'Blue_Nebula/Blue_Nebula_01.png',
+    // 'Blue_Nebula/Blue_Nebula_02.png',
+    // 'Blue_Nebula/Blue_Nebula_03.png',
+    // 'Blue_Nebula/Blue_Nebula_04.png',
+    // // Green Nebula
+    // 'Green_Nebula/Green_Nebula_01.png',
+    // 'Green_Nebula/Green_Nebula_02.png',
+    // 'Green_Nebula/Green_Nebula_03.png',
+    // 'Green_Nebula/Green_Nebula_04.png',
+    // // Purple Nebula
+    // 'Purple_Nebula/Purple_Nebula_01.png',
+    // 'Purple_Nebula/Purple_Nebula_02.png',
+    // 'Purple_Nebula/Purple_Nebula_03.png',
+    // 'Purple_Nebula/Purple_Nebula_04.png',
+    // 'Purple_Nebula/Purple_Nebula_05.png',
     // Starfields
     'Starfields/Starfield_01.png',
     'Starfields/Starfield_02.png',
@@ -100,15 +102,30 @@ class ShooterXGame extends FlameGame {
   Vector2? _prevPlayerPosition; // For tracking player movement delta
   FireStyle fireStyle = FireStyle.normal;
   final GameBloc gameBloc;
+  int lastHeartDropScore = 0;
+  double invincibilityTimer = 0.0;
+  double heartDropTimer = 0.0;
+  double nextHeartDropInterval = 30.0;
   ShooterXGame({required this.gameBloc});
 
   // Skins and bullet types for the store (public for store pages)
-  final List<Map<String, dynamic>> skins = const [
-    {'id': 0, 'name': 'Classic', 'price': 0, 'color': Colors.cyan},
-    {'id': 1, 'name': 'Blue Nova', 'price': 2000, 'color': Colors.blueAccent},
-    {'id': 2, 'name': 'Emerald', 'price': 2500, 'color': Colors.greenAccent},
-    {'id': 3, 'name': 'Violet', 'price': 3000, 'color': Colors.purpleAccent},
-    {'id': 4, 'name': 'Gold', 'price': 3500, 'color': Colors.amber},
+  final List<Map<String, dynamic>> skins = [
+    // 01 series
+    {'id': 0, 'name': '01 Green', 'price': 0, 'color': Colors.green, 'imagePath': '01/Spaceship_01_GREEN.png'},
+    {'id': 2, 'name': '01 Blue', 'price': 1000, 'color': Colors.blue, 'imagePath': '01/Spaceship_01_BLUE.png'},
+    {'id': 4, 'name': '01 Orange', 'price': 1000, 'color': Colors.orange, 'imagePath': '01/Spaceship_01_ORANGE.png'},
+    // 04 series
+    {'id': 7, 'name': '04 Green', 'price': 1200, 'color': Colors.green, 'imagePath': '04/Spaceship_04_GREEN.png'},
+    {'id': 9, 'name': '04 Blue', 'price': 1200, 'color': Colors.blue, 'imagePath': '04/Spaceship_04_BLUE.png'},
+    {'id': 11, 'name': '04 Orange', 'price': 1200, 'color': Colors.orange, 'imagePath': '04/Spaceship_04_ORANGE.png'},
+    // 05 series
+    {'id': 14, 'name': '05 Green', 'price': 1400, 'color': Colors.green, 'imagePath': '05/Spaceship_05_GREEN.png'},
+    {'id': 16, 'name': '05 Blue', 'price': 1400, 'color': Colors.blue, 'imagePath': '05/Spaceship_05_BLUE.png'},
+    {'id': 18, 'name': '05 Orange', 'price': 1400, 'color': Colors.orange, 'imagePath': '05/Spaceship_05_ORANGE.png'},
+    // 06 series
+    {'id': 21, 'name': '06 Green', 'price': 1600, 'color': Colors.green, 'imagePath': '06/Spaceship_06_GREEN.png'},
+    {'id': 23, 'name': '06 Blue', 'price': 1600, 'color': Colors.blue, 'imagePath': '06/Spaceship_06_BLUE.png'},
+    {'id': 25, 'name': '06 Orange', 'price': 1600, 'color': Colors.orange, 'imagePath': '06/Spaceship_06_ORANGE.png'},
   ];
 
   final List<Map<String, dynamic>> bulletTypes = const [
@@ -384,6 +401,9 @@ class ShooterXGame extends FlameGame {
   void update(double dt) {
     super.update(dt);
     if (state != GameState.playing) return;
+    if (invincibilityTimer > 0) {
+      invincibilityTimer -= dt;
+    }
     // Joystick movement (all directions)
     if (joystick.delta.length > 0.1) {
       player.moveDirection = joystick.relativeDelta.normalized();
@@ -411,10 +431,12 @@ class ShooterXGame extends FlameGame {
     if (enemySpawnTimer >= currentEnemySpawnInterval) {
       enemySpawnTimer = 0;
       final x = (size.x - 40) * (_random.nextDouble());
-      final isAsteroid = _random.nextBool();
+      // Only spawn asteroids, red2 and red3 spaceships
+      final enemyTypes = [EnemyType.asteroid, EnemyType.red2, EnemyType.red3];
+      final type = enemyTypes[_random.nextInt(enemyTypes.length)];
       add(Enemy(
         position: Vector2(x, 0),
-        type: isAsteroid ? EnemyType.asteroid : EnemyType.spaceship,
+        type: type,
         speed: currentEnemySpeed,
       ));
     }
@@ -430,23 +452,37 @@ class ShooterXGame extends FlameGame {
         }
       }
     }
-    // Game over if player collides with any enemy (only if enemy is above player's bottom)
+    // Lose a life if player collides with any enemy or enemy bullet (only one life per frame)
+    bool hit = false;
+    Enemy? collidedEnemy;
     for (final enemy in enemies) {
       if (
         enemy.position.y + enemy.size.y > player.position.y &&
         enemy.toRect().overlaps(player.toRect())
       ) {
-        gameOver();
+        hit = true;
+        collidedEnemy = enemy;
         break;
       }
     }
-    // Game over if player is hit by any enemy bullet
     final enemyBullets = children.whereType<EnemyBullet>().toList();
     for (final bullet in enemyBullets) {
       if (bullet.toRect().overlaps(player.toRect())) {
-        gameOver();
+        hit = true;
         break;
       }
+    }
+    if (hit && state == GameState.playing && invincibilityTimer <= 0) {
+      if (collidedEnemy != null) {
+        collidedEnemy.shatterAndDestroy();
+      }
+      if (gameBloc.state.life > 1) {
+        gameBloc.add(LoseLife(1));
+      } else {
+        gameBloc.add(LoseLife(1));
+        gameOver();
+      }
+      invincibilityTimer = 1.0; // 1 second of invincibility after hit
     }
     // Cycle background over time
     backgroundChangeTimer += dt;
@@ -454,6 +490,22 @@ class ShooterXGame extends FlameGame {
       backgroundChangeTimer = 0;
       currentBackgroundIndex = (currentBackgroundIndex + 1) % backgroundPaths.length;
       _changeBackground(backgroundPaths[currentBackgroundIndex]);
+    }
+    // Heart drop logic (randomly over time)
+    heartDropTimer += dt;
+    if (heartDropTimer >= nextHeartDropInterval) {
+      heartDropTimer = 0.0;
+      nextHeartDropInterval = 40.0 + _random.nextDouble() * 20.0; // 40-60 seconds
+      final x = (size.x - 32) * _random.nextDouble();
+      add(Heart(position: Vector2(x, 0)));
+    }
+    // Heart collision with player
+    final hearts = children.whereType<Heart>().toList();
+    for (final heart in hearts) {
+      if (heart.toRect().overlaps(player.toRect())) {
+        gameBloc.add(GainLife(1));
+        heart.removeFromParent();
+      }
     }
   }
 
@@ -498,6 +550,7 @@ class ShooterXGame extends FlameGame {
     children.whereType<Bullet>().forEach((b) => b.removeFromParent());
     children.whereType<Enemy>().forEach((e) => e.removeFromParent());
     player.position = Vector2((size.x - player.size.x) / 2, size.y - player.size.y - 20);
+    player.life = 3;
     gameBloc.add(ResetScore());
     state = GameState.playing;
     overlays.add('Score');
@@ -514,6 +567,7 @@ class ShooterXGame extends FlameGame {
     children.whereType<Bullet>().forEach((b) => b.removeFromParent());
     children.whereType<Enemy>().forEach((e) => e.removeFromParent());
     player.position = Vector2((size.x - player.size.x) / 2, size.y - player.size.y - 20);
+    player.life = 3;
     gameBloc.add(ResetScore());
     state = GameState.playing;
     overlays.add('Score');

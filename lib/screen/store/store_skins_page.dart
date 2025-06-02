@@ -21,10 +21,20 @@ class StoreSkinsPage extends StatelessWidget {
             final isSelected = state.selectedSkin == skin['id'].toString();
             final canBuy = state.totalPoints >= (skin['price'] as int);
             return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: skin['color'],
-                radius: 28,
-                child: Icon(Icons.rocket_launch, color: Colors.white, size: 28),
+              leading: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: isSelected ? Colors.amber : Colors.white24, width: 3),
+                  color: Colors.black,
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/${skin['imagePath']}',
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
               title: Text(
                 skin['name'],
