@@ -1,0 +1,2 @@
+D:/shooterx/android/app/.cxx/RelWithDebInfo/6r6t661w/x86/CMakeFiles/edit_cache.dir
+D:/shooterx/android/app/.cxx/RelWithDebInfo/6r6t661w/x86/CMakeFiles/rebuild_cache.dir

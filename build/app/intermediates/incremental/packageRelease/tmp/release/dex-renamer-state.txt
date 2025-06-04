@@ -1,0 +1,4 @@
+#Mon Jun 02 08:18:45 BDT 2025
+base.0=D\:\\shooterx\\build\\app\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
+renamed.0=classes.dex
+path.0=classes.dex
