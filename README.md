@@ -5,12 +5,13 @@
 ## Features
 
 - **Endless Gameplay:** Survive as long as you can against waves of asteroids and enemy ships.
-- **Dynamic Difficulty:** The game gets harder as your score increases—enemies spawn faster and move quicker.
+- **Dynamic Difficulty:** The game gets harder as your score increases—enemies spawn faster, move quicker, and enemy ships fire more frequently.
 - **Beautiful Parallax Backgrounds:** Multiple nebula and starfield backgrounds that cycle as you play.
 - **Intuitive Controls:** On-screen joystick for movement and a dedicated shoot button.
 - **Responsive UI:** Animated overlays for welcome, pause, score, and game over screens.
 - **Powerful Visuals:** Glassy effects, glowing buttons, and smooth animations.
 - **Score Tracking:** See your score at game over and challenge yourself to beat your high score.
+- **Lives System:** Start with multiple lives—each collision costs a life, and the game ends when all lives are lost.
 
 ## Screenshots
 
@@ -51,14 +52,16 @@
 
 - **Move:** Use the on-screen joystick (bottom left) to move your ship in all directions.
 - **Shoot:** Tap the glowing shoot button (bottom right) to fire bullets.
-- **Objective:** Destroy asteroids and enemy spaceships to earn points. Avoid collisions—one hit and it's game over!
+- **Objective:** Destroy asteroids and enemy spaceships to earn points. Avoid collisions—each hit costs you a life!
+- **Lives:** You start with a set number of lives. Each time you collide with an enemy or get hit by an enemy bullet, you lose a life. The game ends when all lives are lost.
 - **Pause:** Tap the pause button (top right) to pause the game.
 
 ## Game Flow
 
 - Start from the animated welcome screen.
 - Survive as long as possible, shooting enemies and dodging obstacles.
-- When you collide with an enemy or get hit by an enemy bullet, the game ends and your score is displayed.
+- You start with multiple lives. Each collision or hit reduces your lives by one. When all lives are lost, the game ends and your score is displayed.
+- As you progress, enemy ships will fire more often, increasing the challenge.
 - Restart or return to the main menu from the game over screen.
 
 ## Credits
