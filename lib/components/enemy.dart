@@ -34,7 +34,7 @@ class Enemy extends PositionComponent {
                       : Vector2(52, 52),
         ) {
     debugMode = false;
-    nextShoot = 1.5 + _random.nextDouble() * 2.0; // random between 1.5 and 3.5s
+    nextShoot = 1 + _random.nextDouble() * 1.5; // random between 0.7 and 1.7s
     if (type == EnemyType.asteroid) {
       _generateAsteroidShape();
     }
@@ -397,7 +397,7 @@ class Enemy extends PositionComponent {
     shootTimer += dt;
     if ((type == EnemyType.spaceship || type == EnemyType.red2 || type == EnemyType.red3) && shootTimer >= nextShoot && position.y > 0 && position.y < findGame()!.size.y - size.y) {
       shootTimer = 0;
-      nextShoot = 1.5 + _random.nextDouble() * 2.0;
+      nextShoot = 0.7 + _random.nextDouble() * 1.0;
       parent?.add(EnemyBullet(position: position + Vector2(size.x / 2 - 4, size.y)));
     }
   }
